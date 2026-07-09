@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ff-papercut"
+version = "0.1.0"
+description = "논문 PDF 처리 파이프라인: 추출(MinerU), 번역/요약(LLM API)"
+requires-python = ">=3.10"
+dependencies = [
+    "loguru",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
