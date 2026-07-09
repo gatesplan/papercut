@@ -24,6 +24,13 @@
 - 번역/요약은 논문 길이가 LLM 출력 한도를 넘을 수 있으므로 단락(섹션) 단위 분할 처리를 전제로 설계한다. [추측]
 - LLM 호출부는 별도 모듈로 분리하여 번역/요약이 공유한다. xAI API는 OpenAI 호환 형식이다. [근거, .meta/260709-그록4.5가격조사.md]
 - [확정] 패키지는 .env 등 환경설정 파일을 직접 읽지 않는다. API 키는 객체 생성 시 파라미터로 주입받는다. 키 관리는 상위 서비스의 책임.
+- [확정] API는 동기(blocking) 형태로 제공한다. async 서버는 스레드풀로 감싸 사용한다.
+- [확정] LLM 사용 클래스의 생성자는 api_key 외에 model, base_url을 받는다. 기본값은 Grok 4.5 / xAI 엔드포인트. OpenAI 호환 API면 어느 업체든 교체 가능하다.
+- [확정] 배포 환경: Windows 11 호스트 + Docker(WSL2). 컨테이너 내부는 Linux이므로 MinerU 백엔드 제약 없음. GPU는 WSL2 passthrough로 노출.
+- [추측] extract() 입력은 bytes와 파일 경로 둘 다 허용한다.
+- [추측] Extractor backend 기본값은 pipeline.
+- [추측] 긴 논문 분할은 markdown 헤더(섹션) 우선, 과대 섹션은 토큰 수 기준 보조 분할.
+- [추측] LLM API 오류 시 횟수 제한 재시도 후 예외를 상위로 전파한다. 패키지가 오류를 삼키지 않는다.
 
 ## 엔트리포인트
 
@@ -90,15 +97,17 @@ classDiagram
         +unload()
     }
     class LLMClient {
-        +LLMClient(api_key)
+        +LLMClient(api_key, model, base_url)
         +complete(prompt) str
     }
     class Translator {
+        +Translator(api_key, model, base_url)
         +translate(markdown, translate_to) str
     }
     class Summarizer {
-        +summarize(markdown) str
-        +quick_read(markdown) str
+        +Summarizer(api_key, model, base_url)
+        +summarize(markdown, language) str
+        +quick_read(markdown, language) str
     }
 
     PaperDocument o-- Figure
@@ -127,6 +136,7 @@ sequenceDiagram
 ## 요약 형식
 
 - [확정] 요약은 두 모드를 지원한다.
+- [확정] 요약 결과의 언어는 language 파라미터로 지정한다. 번역 규칙(원어 병기 등)을 동일하게 적용한다.
 - condensed report: 논문 전체를 한 번에 요약. 상단 TLDR 1~2문장 + 구조화 요약(연구 질문/목적, 방법, 핵심 결과, 한계, 의의) 고정 markdown 템플릿. 분량은 논문 길이와 무관하게 일정.
 - 섹션별 요약 (빨리읽기): 원문 섹션 순서를 따라 각 섹션을 압축. 원문 구조 보존, "원문 대신 읽는" 용도. 섹션 단위 LLM 호출로 생성.
 
