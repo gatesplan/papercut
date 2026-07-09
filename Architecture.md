@@ -32,9 +32,10 @@
 - Ln 프로토콜의 "최상위 파사드만 노출" 원칙의 예외로, 파사드 없이 기능별 클래스를 직접 노출한다.
 - [확정] Extractor의 모델 로딩은 lazy(첫 extract 호출 시)로 하고, unload() 메서드로 VRAM/RAM 반납 수단을 제공한다.
 - unload() 후에도 객체는 유효하다. 이후 extract() 호출 시 lazy 로드가 다시 작동하여 정상 동작한다 (로딩 비용 재발생).
-- [확정] Extractor는 내부 작업 큐를 가진다. 동시 extract() 호출은 큐에 쌓여 순서대로 처리된다.
-- [확정] 동시 처리 수는 생성자 파라미터 max_workers(기본 1)로 설정한다. 워커 수만큼 모델 인스턴스가 올라가므로 VRAM 점유도 비례하여 증가한다.
+- [확정] Extractor 하나는 직렬로 동작한다. 내부 작업 큐가 동시 extract() 호출을 순서대로 처리한다.
+- [확정] 병렬화는 Extractor 객체를 여러 개 생성하여 달성한다. 객체 수만큼 모델 인스턴스가 올라가 VRAM 점유가 비례 증가하며, 객체 간 작업 분배는 상위 서비스의 책임이다.
 - [확정] 큐 소진 시 자동 unload하는 옵션(auto_unload)을 제공한다. 상주를 원하면 끄고 수동 unload()를 사용한다.
+- [확정] unload 안전 규칙: 실제 반납은 진행 중 작업이 없고 큐가 비어있을 때만 수행한다. 진행 중 작업이 있으면 예약 후 완료 시점에 수행한다. 로드/상주/반납 상태 전이는 락으로 직렬화하여 unload 중 새 요청 도착 레이스를 방지한다.
 
 ## 번역 규칙
 
@@ -82,7 +83,7 @@ classDiagram
         +mime: str
     }
     class Extractor {
-        +Extractor(backend, max_workers, auto_unload)
+        +Extractor(backend, auto_unload)
         +extract(pdf) PaperDocument
         +unload()
     }
