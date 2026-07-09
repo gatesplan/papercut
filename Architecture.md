@@ -23,6 +23,7 @@
 - 추출 결과(figure 포함)는 디스크 경로가 아닌 메모리 상 데이터로 반환한다. MinerU가 내부적으로 파일을 생성하더라도 래퍼가 임시 영역에서 처리 후 데이터로 회수한다. [추측]
 - 번역/요약은 논문 길이가 LLM 출력 한도를 넘을 수 있으므로 단락(섹션) 단위 분할 처리를 전제로 설계한다. [추측]
 - LLM 호출부는 별도 모듈로 분리하여 번역/요약이 공유한다. xAI API는 OpenAI 호환 형식이다. [근거, .meta/260709-그록4.5가격조사.md]
+- [확정] 패키지는 .env 등 환경설정 파일을 직접 읽지 않는다. API 키는 객체 생성 시 파라미터로 주입받는다. 키 관리는 상위 서비스의 책임.
 
 ## 번역 규칙
 
@@ -73,6 +74,7 @@ classDiagram
         +extract(pdf) PaperDocument
     }
     class LLMClient {
+        +LLMClient(api_key)
         +complete(prompt) str
     }
     class Translator {
