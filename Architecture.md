@@ -30,8 +30,11 @@
 - [확정] 패키지 루트에서 Extractor, Translator, Summarizer 세 클래스를 노출한다. 상위 서비스가 필요한 것만 생성하여 조합한다.
 - 근거: Extractor(GPU 모델 상주, 서버 기동 시 1회 생성)와 Translator/Summarizer(가벼운 API 호출 객체)의 자원 성격과 수명주기가 달라 분리 관리가 유리하다.
 - Ln 프로토콜의 "최상위 파사드만 노출" 원칙의 예외로, 파사드 없이 기능별 클래스를 직접 노출한다.
-- [추측] Extractor의 모델 로딩은 lazy(첫 extract 호출 시)로 하고, unload() 메서드로 VRAM/RAM 반납 수단을 제공한다. 상주/해제 정책 자체는 상위 서비스의 책임.
+- [확정] Extractor의 모델 로딩은 lazy(첫 extract 호출 시)로 하고, unload() 메서드로 VRAM/RAM 반납 수단을 제공한다.
 - unload() 후에도 객체는 유효하다. 이후 extract() 호출 시 lazy 로드가 다시 작동하여 정상 동작한다 (로딩 비용 재발생).
+- [확정] Extractor는 내부 작업 큐를 가진다. 동시 extract() 호출은 큐에 쌓여 순서대로 처리된다.
+- [확정] 동시 처리 수는 생성자 파라미터 max_workers(기본 1)로 설정한다. 워커 수만큼 모델 인스턴스가 올라가므로 VRAM 점유도 비례하여 증가한다.
+- [확정] 큐 소진 시 자동 unload하는 옵션(auto_unload)을 제공한다. 상주를 원하면 끄고 수동 unload()를 사용한다.
 
 ## 번역 규칙
 
@@ -79,6 +82,7 @@ classDiagram
         +mime: str
     }
     class Extractor {
+        +Extractor(backend, max_workers, auto_unload)
         +extract(pdf) PaperDocument
         +unload()
     }
