@@ -9,6 +9,12 @@ description = "논문 PDF 처리 파이프라인: 추출(MinerU), 번역/요약(
 requires-python = ">=3.10"
 dependencies = [
     "loguru",
+    "openai>=1.0",
+]
+
+[project.optional-dependencies]
+extract = [
+    "mineru>=3.4",
 ]
 
 [tool.setuptools.packages.find]
