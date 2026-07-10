@@ -25,4 +25,4 @@ complete(prompt: str, system: str | None = None) -> str
 
 ## 설계 이유
 
-- xAI 직접 API 모델 ID 'grok-4.5'는 [추측]. 연동 시 docs.x.ai에서 확인 필요. [근거, .meta/260709-그록4.5가격조사.md]
+- 모델 ID 'grok-4.5'는 실호출로 확인 완료 (2026-07-10 통합 테스트). [근거, .meta/260709-그록4.5가격조사.md]
