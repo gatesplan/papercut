@@ -5,7 +5,8 @@ from ...l1.llmclient import LLMClient, DEFAULT_MODEL, DEFAULT_BASE_URL
 
 TERM_RULES = (
     "고유명사(물질명, 학술용어 등)는 번역어 뒤에 원어를 괄호로 병기한다. "
-    "원어가 영어가 아닌 용어는 발음도 함께 병기한다."
+    "원어가 영어가 아닌 용어는 발음도 함께 병기한다. "
+    "원문의 문자 표기를 임의로 바꾸지 않는다 (예: H2O를 H₂O로, cm-1을 cm⁻¹로 변환 금지)."
 )
 
 REPORT_SYSTEM = (
