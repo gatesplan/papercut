@@ -18,10 +18,11 @@ __init__(api_key: str, model: str = 'grok-4.5', base_url: str = 'https://api.x.a
 
 ### Methods
 
-complete(prompt: str, system: str | None = None) -> str
+complete(prompt: str, system: str | None = None) -> TextResult
     raise RuntimeError, openai.APIError 계열
-    chat.completions 호출 후 응답 텍스트 반환.
+    chat.completions 호출 후 텍스트와 usage(토큰 사용량 상세)를 TextResult로 반환.
     응답에 텍스트가 없으면 RuntimeError.
+    usage 필드가 없는 provider는 0으로 채워 방어.
 
 ## 설계 이유
 

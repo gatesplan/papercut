@@ -1,5 +1,6 @@
 from loguru import logger
 
+from ...l0.llmresult import TextResult
 from ...l0.sectioner import Sectioner
 from ...l1.llmclient import LLMClient, DEFAULT_MODEL, DEFAULT_BASE_URL
 
@@ -22,16 +23,19 @@ class Translator:
         self._llm = LLMClient(api_key=api_key, model=model, base_url=base_url)
         self._sectioner = Sectioner(max_chars=max_chars)
 
-    def translate(self, markdown: str, translate_to: str) -> str:
+    def translate(self, markdown: str, translate_to: str) -> TextResult:
         if not markdown.strip():
             raise ValueError("markdown이 비어 있다")
         if not translate_to:
             raise ValueError("translate_to가 비어 있다")
         sections = self._sectioner.split(markdown)
         logger.info(f"번역 시작: {len(sections)}개 섹션, 대상 언어 {translate_to}")
-        translated = []
+        texts = []
+        call_usages = []
         for index, section in enumerate(sections, start=1):
             prompt = f"다음 학술 논문 markdown 조각을 {translate_to}(으)로 번역하라.\n\n{section}"
-            translated.append(self._llm.complete(prompt, system=SYSTEM_PROMPT))
+            result = self._llm.complete(prompt, system=SYSTEM_PROMPT)
+            texts.append(result.text)
+            call_usages.append(result.usage)
             logger.debug(f"섹션 번역 완료 {index}/{len(sections)}")
-        return '\n\n'.join(translated)
+        return TextResult.from_calls('\n\n'.join(texts), call_usages)

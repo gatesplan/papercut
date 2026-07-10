@@ -1,6 +1,8 @@
 from loguru import logger
 from openai import OpenAI
 
+from ...l0.llmresult import LLMUsage, TextResult
+
 DEFAULT_MODEL = 'grok-4.5'
 DEFAULT_BASE_URL = 'https://api.x.ai/v1'
 
@@ -16,7 +18,7 @@ class LLMClient:
         self._client = OpenAI(api_key=api_key, base_url=base_url,
                               max_retries=max_retries, timeout=timeout)
 
-    def complete(self, prompt: str, system: str | None = None) -> str:
+    def complete(self, prompt: str, system: str | None = None) -> TextResult:
         messages = []
         if system:
             messages.append({'role': 'system', 'content': system})
@@ -26,4 +28,21 @@ class LLMClient:
         content = response.choices[0].message.content
         if content is None:
             raise RuntimeError("LLM 응답에 텍스트가 없다")
-        return content
+        usage = self._extract_usage(response)
+        logger.debug(f"LLM 응답: prompt {usage.prompt_tokens} / completion {usage.completion_tokens} 토큰")
+        return TextResult(text=content, usage=usage, call_usages=[usage])
+
+    def _extract_usage(self, response) -> LLMUsage:
+        # usage 필드가 없거나 세부 구조가 다른 provider도 있어 방어적으로 추출
+        usage = getattr(response, 'usage', None)
+        if usage is None:
+            return LLMUsage()
+        prompt_details = getattr(usage, 'prompt_tokens_details', None)
+        completion_details = getattr(usage, 'completion_tokens_details', None)
+        return LLMUsage(
+            prompt_tokens=getattr(usage, 'prompt_tokens', 0) or 0,
+            completion_tokens=getattr(usage, 'completion_tokens', 0) or 0,
+            total_tokens=getattr(usage, 'total_tokens', 0) or 0,
+            cached_tokens=getattr(prompt_details, 'cached_tokens', 0) or 0,
+            reasoning_tokens=getattr(completion_details, 'reasoning_tokens', 0) or 0,
+        )

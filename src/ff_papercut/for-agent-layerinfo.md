@@ -3,6 +3,7 @@
 ## l0
 - paperdoc: 추출 결과 데이터 타입 (PaperDocument, Figure)
 - sectioner: markdown 섹션 분할
+- llmresult: LLM 결과 데이터 타입 (TextResult, LLMUsage)
 
 ## l1
 - extractor: PDF -> PaperDocument 변환 (MinerU 로컬 API 서버 래퍼)

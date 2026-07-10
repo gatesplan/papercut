@@ -1,5 +1,6 @@
 import pytest
 
+from ff_papercut.l0.llmresult import LLMUsage, TextResult
 from ff_papercut.l2.translator import Translator
 
 
@@ -9,7 +10,8 @@ class FakeLLM:
 
     def complete(self, prompt, system=None):
         self.calls.append({'prompt': prompt, 'system': system})
-        return f'[T{len(self.calls)}]'
+        usage = LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
+        return TextResult(text=f'[T{len(self.calls)}]', usage=usage, call_usages=[usage])
 
 
 class TestTranslator:
@@ -29,9 +31,16 @@ class TestTranslator:
     def test_sections_translated_and_joined(self):
         t = self.make()
         result = t.translate('# A\ntext\n# B\ntext', '한국어')
-        assert result == '[T1]\n\n[T2]'
+        assert result.text == '[T1]\n\n[T2]'
         assert len(t._llm.calls) == 2
         assert '한국어' in t._llm.calls[0]['prompt']
+
+    def test_usage_aggregated(self):
+        t = self.make()
+        result = t.translate('# A\ntext\n# B\ntext', '한국어')
+        assert result.usage.prompt_tokens == 20
+        assert result.usage.total_tokens == 30
+        assert len(result.call_usages) == 2
 
     def test_system_prompt_has_rules(self):
         t = self.make()
@@ -39,3 +48,4 @@ class TestTranslator:
         system = t._llm.calls[0]['system']
         assert '병기' in system
         assert 'markdown' in system
+        assert '헤더' in system

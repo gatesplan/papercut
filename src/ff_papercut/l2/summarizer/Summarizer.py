@@ -1,5 +1,6 @@
 from loguru import logger
 
+from ...l0.llmresult import TextResult
 from ...l0.sectioner import Sectioner
 from ...l1.llmclient import LLMClient, DEFAULT_MODEL, DEFAULT_BASE_URL
 
@@ -35,27 +36,30 @@ class Summarizer:
         self._llm = LLMClient(api_key=api_key, model=model, base_url=base_url)
         self._sectioner = Sectioner(max_chars=max_chars)
 
-    def summarize(self, markdown: str, language: str) -> str:
+    def summarize(self, markdown: str, language: str) -> TextResult:
         # 논문 전체를 한 번에 요약 (Grok 컨텍스트 500K 토큰이면 일반 논문 충분)
         self._validate(markdown, language)
         logger.info(f"압축 보고서 생성 시작: {len(markdown)}자, 언어 {language}")
         prompt = f"다음 논문을 {language}(으)로 요약하라.\n\n{markdown}"
         return self._llm.complete(prompt, system=REPORT_SYSTEM)
 
-    def quick_read(self, markdown: str, language: str) -> str:
+    def quick_read(self, markdown: str, language: str) -> TextResult:
         # 원문 구조를 보존한 섹션별 압축 (빨리읽기)
         self._validate(markdown, language)
         sections = self._sectioner.split(markdown)
         logger.info(f"빨리읽기 생성 시작: {len(sections)}개 섹션, 언어 {language}")
         compressed = []
+        call_usages = []
         for index, section in enumerate(sections, start=1):
             if len(section.strip()) < QUICK_READ_MIN_CHARS:
                 compressed.append(section.strip())
                 continue
             prompt = f"다음 논문 섹션을 {language}(으)로 압축하라.\n\n{section}"
-            compressed.append(self._llm.complete(prompt, system=QUICK_READ_SYSTEM))
+            result = self._llm.complete(prompt, system=QUICK_READ_SYSTEM)
+            compressed.append(result.text)
+            call_usages.append(result.usage)
             logger.debug(f"섹션 압축 완료 {index}/{len(sections)}")
-        return '\n\n'.join(compressed)
+        return TextResult.from_calls('\n\n'.join(compressed), call_usages)
 
     def _validate(self, markdown: str, language: str) -> None:
         if not markdown.strip():

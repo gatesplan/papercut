@@ -26,6 +26,7 @@
 - [확정] 패키지는 .env 등 환경설정 파일을 직접 읽지 않는다. API 키는 객체 생성 시 파라미터로 주입받는다. 키 관리는 상위 서비스의 책임.
 - [확정] API는 동기(blocking) 형태로 제공한다. async 서버는 스레드풀로 감싸 사용한다.
 - [확정] LLM 사용 클래스의 생성자는 api_key 외에 model, base_url을 받는다. 기본값은 Grok 4.5 / xAI 엔드포인트. OpenAI 호환 API면 어느 업체든 교체 가능하다.
+- [확정] LLM 처리 결과는 텍스트와 토큰 사용량을 함께 반환한다 (TextResult: text + 합산 usage + 호출별 call_usages). 상위 서비스의 비용 추적용.
 - [확정] 배포 환경: Windows 11 호스트 + Docker(WSL2). 컨테이너 내부는 Linux이므로 MinerU 백엔드 제약 없음. GPU는 WSL2 passthrough로 노출.
 - [추측] extract() 입력은 bytes와 파일 경로 둘 다 허용한다.
 - [추측] Extractor backend 기본값은 pipeline.
@@ -97,24 +98,39 @@ classDiagram
         +extract(pdf) PaperDocument
         +unload()
     }
+    class LLMUsage {
+        +prompt_tokens: int
+        +completion_tokens: int
+        +total_tokens: int
+        +cached_tokens: int
+        +reasoning_tokens: int
+    }
+    class TextResult {
+        +text: str
+        +usage: LLMUsage
+        +call_usages: list~LLMUsage~
+    }
     class LLMClient {
         +LLMClient(api_key, model, base_url)
-        +complete(prompt) str
+        +complete(prompt) TextResult
     }
     class Translator {
         +Translator(api_key, model, base_url)
-        +translate(markdown, translate_to) str
+        +translate(markdown, translate_to) TextResult
     }
     class Summarizer {
         +Summarizer(api_key, model, base_url)
-        +summarize(markdown, language) str
-        +quick_read(markdown, language) str
+        +summarize(markdown, language) TextResult
+        +quick_read(markdown, language) TextResult
     }
 
     PaperDocument o-- Figure
+    TextResult o-- LLMUsage
     Extractor ..> PaperDocument : 생성
     Translator ..> LLMClient : 사용
     Summarizer ..> LLMClient : 사용
+    Translator ..> TextResult : 반환
+    Summarizer ..> TextResult : 반환
 ```
 
 ## 사용 흐름

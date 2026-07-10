@@ -11,10 +11,11 @@ __init__(api_key: str, model: str = 'grok-4.5', base_url: str = 'https://api.x.a
 
 ### Methods
 
-translate(markdown: str, translate_to: str) -> str
+translate(markdown: str, translate_to: str) -> TextResult
     raise ValueError, openai.APIError 계열
     markdown 또는 translate_to가 비어 있으면 ValueError.
     Sectioner로 분할 후 섹션별 LLM 호출, '\n\n'으로 재조립.
+    반환 TextResult에 합산 usage와 섹션별 call_usages 포함.
     번역 규칙 (시스템 프롬프트에 고정):
     - markdown 구조, 수식, 코드, 이미지 참조 보존
     - 고유명사는 원어 병기: olivine -> 감람석(olivine)
